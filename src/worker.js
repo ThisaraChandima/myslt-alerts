@@ -219,6 +219,27 @@ export default {
   },
 
   async fetch(request, env, ctx) {
+    // Dashboard API: return JSON usage data when called from AutoHub
+    if (request.headers.get("X-Dashboard") === "true") {
+      try {
+        const token = await login(env.SLT_USERNAME, env.SLT_PASSWORD);
+        const usage = await getUsage(token, env.SLT_SUBSCRIBER_ID);
+        return new Response(JSON.stringify({
+          ...usage,
+          lastCheck: new Date().toISOString(),
+          status: "active"
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message, status: "error" }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+    }
+
     if (request.method !== "POST") {
       return new Response("myslt-bot is running! Send 'check' on WhatsApp to get your data usage.", { status: 200 });
     }
